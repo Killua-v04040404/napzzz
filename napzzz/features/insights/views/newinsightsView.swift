@@ -555,6 +555,7 @@ struct SleepQualityScoreView: View {
 struct ProfessionalSleepStagesView: View {
     let session: SleepSessionData
     @State private var animateGraph = false
+    @State private var animateLabels = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -590,38 +591,55 @@ struct ProfessionalSleepStagesView: View {
                                 .font(.caption2)
                                 .foregroundColor(.gray)
                                 .frame(height: 40, alignment: .center)
-                            
-                            Spacer()
-                            
-                            Text("Light")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                                .frame(height: 40, alignment: .center)
-                            
-                            Spacer()
-                            
-                            Text("REM")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                                .frame(height: 40, alignment: .center)
-                            
-                            Spacer()
-                            
-                            Text("Deep")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                                .frame(height: 40, alignment: .center)
-                        }
-                        .frame(width: 40)
-                        
-                        // Main graph area
+                    // Enhanced Y-axis labels with professional styling and highlights
+                    ZStack(alignment: .leading) {
+                        // Main graph area with left padding for labels
                         SleepFlowGraph(session: session, animate: animateGraph)
+                            .padding(.leading, 70)
+                        
+                        // Professional sleep phase labels with highlights
+                        GeometryReader { geometry in
+                            let graphHeight: CGFloat = 150
+                            
+                            // Awake label
+                            SleepPhaseLabelContent(
+                                text: "Awake",
+                                color: .green,
+                                animate: animateLabels
+                            )
+                            .position(x: 35, y: graphHeight * 0.15)
+                            
+                            // Light sleep label
+                            SleepPhaseLabelContent(
+                                text: "Light",
+                                color: .blue,
+                                animate: animateLabels
+                            )
+                            .position(x: 35, y: graphHeight * 0.4)
+                            
+                            // Dream (REM) sleep label
+                            SleepPhaseLabelContent(
+                                text: "Dream",
+                                color: .pink,
+                                animate: animateLabels
+                            )
+                            .position(x: 35, y: graphHeight * 0.6)
+                            
+                            // Deep sleep label
+                            SleepPhaseLabelContent(
+                                text: "Deep",
+                                color: .purple,
+                                animate: animateLabels
+                            )
+                            .position(x: 35, y: graphHeight * 0.85)
+                        }
+                        .frame(height: 150)
                     }
                     
                     // X-axis time labels
                     HStack {
                         Spacer()
-                            .frame(width: 40) // Align with Y-axis labels
+                            .frame(width: 70) // Align with Y-axis labels
                         
                         HStack {
                             Text(formatTime(session.startTime))
@@ -650,6 +668,9 @@ struct ProfessionalSleepStagesView: View {
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 animateGraph = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                animateLabels = true
             }
         }
     }
