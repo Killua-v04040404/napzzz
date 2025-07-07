@@ -555,6 +555,7 @@ struct SleepQualityScoreView: View {
 struct ProfessionalSleepStagesView: View {
     let session: SleepSessionData
     @State private var animateGraph = false
+    @State private var animateLabels = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -565,85 +566,110 @@ struct ProfessionalSleepStagesView: View {
             
             // Professional sleep flow graph container
             ZStack {
-                // Background with subtle gradient
-                RoundedRectangle(cornerRadius: 16)
+                // Modern glass-morphism background
+                RoundedRectangle(cornerRadius: 20)
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color.defaultCardBackground.opacity(0.8),
-                                Color.defaultCardBackground.opacity(0.4)
+                                Color.white.opacity(0.05),
+                                Color.white.opacity(0.02)
                             ],
-                            startPoint: .top,
-                            endPoint: .bottom
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
                     )
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.defaultCardBackground.opacity(0.3))
+                            .blur(radius: 10)
+                    )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.1),
+                                        Color.white.opacity(0.05)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
                     )
                 
                 VStack(spacing: 0) {
-                    // Y-axis labels
-                    HStack {
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text("Awake")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                                .frame(height: 40, alignment: .center)
-                            
-                            Spacer()
-                            
-                            Text("Light")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                                .frame(height: 40, alignment: .center)
-                            
-                            Spacer()
-                            
-                            Text("REM")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                                .frame(height: 40, alignment: .center)
-                            
-                            Spacer()
-                            
-                            Text("Deep")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                                .frame(height: 40, alignment: .center)
-                        }
-                        .frame(width: 40)
-                        
-                        // Main graph area
+                    // Enhanced Y-axis labels with professional styling and highlights
+                    ZStack(alignment: .leading) {
+                        // Main graph area with left padding for labels
                         SleepFlowGraph(session: session, animate: animateGraph)
+                            .padding(.leading, 70)
+                        
+                        // Professional sleep phase labels with highlights
+                        GeometryReader { geometry in
+                            let graphHeight: CGFloat = 150
+                            
+                            // Awake label
+                            SleepPhaseLabelContent(
+                                text: "Awake",
+                                color: .green,
+                                animate: animateLabels
+                            )
+                            .position(x: 35, y: graphHeight * 0.15)
+                            
+                            // Light sleep label
+                            SleepPhaseLabelContent(
+                                text: "Light",
+                                color: .blue,
+                                animate: animateLabels
+                            )
+                            .position(x: 35, y: graphHeight * 0.35)
+                            
+                            // Dream (REM) sleep label
+                            SleepPhaseLabelContent(
+                                text: "Dream",
+                                color: .pink,
+                                animate: animateLabels
+                            )
+                            .position(x: 35, y: graphHeight * 0.65)
+                            
+                            // Deep sleep label
+                            SleepPhaseLabelContent(
+                                text: "Deep",
+                                color: .purple,
+                                animate: animateLabels
+                            )
+                            .position(x: 35, y: graphHeight * 0.85)
+                        }
+                        .frame(height: 150)
                     }
                     
-                    // X-axis time labels
+                    // X-axis time labels - Show sleep hours instead of clock time
                     HStack {
                         Spacer()
-                            .frame(width: 40) // Align with Y-axis labels
+                            .frame(width: 70) // Align with Y-axis labels
                         
                         HStack {
-                            Text(formatTime(session.startTime))
-                                .font(.caption2)
+                            Text("0h")
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.gray)
                             
                             Spacer()
                             
-                            Text(formatTime(midTime))
-                                .font(.caption2)
+                            Text("\(Int(session.totalSleepTime / 7200))h") // Mid-point hours
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.gray)
                             
                             Spacer()
                             
-                            Text(formatTime(session.endTime))
-                                .font(.caption2)
+                            Text("\(Int(session.totalSleepTime / 3600))h") // Total hours
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.gray)
                         }
                     }
-                    .padding(.top, 8)
+                    .padding(.top, 12)
                 }
-                .padding(16)
+                .padding(20)
             }
         }
         .padding(.vertical, 20)
@@ -651,18 +677,119 @@ struct ProfessionalSleepStagesView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 animateGraph = true
             }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                animateLabels = true
+            }
         }
     }
+}
+
+// MARK: - Enhanced Sleep Phase Label with Professional Styling
+struct SleepPhaseLabelContent: View {
+    let text: String
+    let color: Color
+    let animate: Bool
     
-    private var midTime: Date {
-        let totalDuration = session.endTime.timeIntervalSince(session.startTime)
-        return session.startTime.addingTimeInterval(totalDuration / 2)
-    }
+    @State private var glowIntensity: Double = 0.3
     
-    private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
+    var body: some View {
+        ZStack {
+            // Subtle background glow/highlight
+            RoundedRectangle(cornerRadius: 8)
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            color.opacity(animate ? 0.15 : 0),
+                            color.opacity(animate ? 0.08 : 0),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: 2,
+                        endRadius: 25
+                    )
+                )
+                .frame(width: 60, height: 28)
+                .blur(radius: 2)
+                .animation(.easeInOut(duration: 1.2), value: animate)
+            
+            // Main label container with glass effect
+            ZStack {
+                // Glass morphism background
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(animate ? 0.08 : 0.02),
+                                Color.white.opacity(animate ? 0.04 : 0.01)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        color.opacity(animate ? 0.4 : 0.1),
+                                        color.opacity(animate ? 0.2 : 0.05)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: animate ? 1.2 : 0.8
+                            )
+                    )
+                    .frame(width: 50, height: 24)
+                    .animation(.easeInOut(duration: 1.0), value: animate)
+                
+                // Text label
+                Text(text)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(animate ? 0.95 : 0.7))
+                    .shadow(color: color.opacity(0.3), radius: animate ? 2 : 0, x: 0, y: 0)
+                    .animation(.easeInOut(duration: 0.8), value: animate)
+                
+                // Subtle accent dot indicator
+                VStack {
+                    HStack {
+                        Spacer()
+                        Circle()
+                            .fill(color)
+                            .frame(width: animate ? 3 : 2, height: animate ? 3 : 2)
+                            .shadow(color: color, radius: animate ? 3 : 1, x: 0, y: 0)
+                            .opacity(animate ? 0.9 : 0.5)
+                            .animation(.easeInOut(duration: 1.2), value: animate)
+                    }
+                    Spacer()
+                }
+                .frame(width: 50, height: 24)
+                .padding(.trailing, 4)
+                .padding(.top, 2)
+            }
+            
+            // Animated pulse effect for extra polish
+            Circle()
+                .fill(color.opacity(0.1))
+                .frame(width: animate ? 40 : 20, height: animate ? 40 : 20)
+                .blur(radius: 8)
+                .opacity(animate ? glowIntensity : 0)
+                .animation(
+                    .easeInOut(duration: 2.0)
+                    .repeatForever(autoreverses: true),
+                    value: animate
+                )
+                .onAppear {
+                    if animate {
+                        withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                            glowIntensity = 0.6
+                        }
+                    }
+                }
+        }
+        .scaleEffect(animate ? 1.0 : 0.9)
+        .opacity(animate ? 1.0 : 0.6)
+        .animation(.spring(response: 0.8, dampingFraction: 0.7), value: animate)
     }
 }
 
@@ -1583,4 +1710,3 @@ struct ConsistencyBar: View {
     NewInsightsView()
         .preferredColorScheme(.dark)
 }
-
