@@ -929,60 +929,232 @@ struct SleepFlowFill: Shape {
 
 struct SleepPhaseBreakdownView: View {
     let session: SleepSessionData
+    @State private var animateGlow = false
     
     var body: some View {
-        VStack(spacing: 15) {
-            ForEach(SleepPhaseType.allCases, id: \.self) { phaseType in
-                if let phase = session.sleepPhases.first(where: { $0.type == phaseType }) {
-                    PhaseBreakdownRow(phase: phase)
-                }
-            }
-        }
-        .padding(.vertical, 20)
-    }
-}
-
-struct PhaseBreakdownRow: View {
-    let phase: SleepPhaseData
-    
-    var body: some View {
-        HStack(spacing: 15) {
-            // Phase indicator
-            Rectangle()
-                .fill(colorForPhase(phase.type))
-                .frame(width: 4, height: 40)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(phase.type.displayName)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                Text("< \(formatDuration(phase.duration))")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("\(Int(phase.percentage))%")
+        VStack(spacing: 20) {
+            // Enhanced header with subtle styling
+            HStack {
+                Text("Sleep Phases")
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                 
-                Text("< \(formatDuration(phase.duration))")
+                Spacer()
+                
+                // Optional: Add a small info icon
+                Image(systemName: "info.circle")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.gray.opacity(0.6))
             }
+            .padding(.bottom, 10)
+            
+            ForEach(SleepPhaseType.allCases, id: \.self) { phaseType in
+                if let phase = session.sleepPhases.first(where: { $0.type == phaseType }) {
+                    EnhancedPhaseBreakdownRow(phase: phase, animateGlow: animateGlow)
+                }
+            }
+        }
+        .padding(.vertical, 20)
+        .padding(.horizontal, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.defaultCardBackground.opacity(0.8),
+                            Color.defaultCardBackground.opacity(0.6)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.1),
+                                    Color.white.opacity(0.05)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        )
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                animateGlow = true
+            }
+        }
+    }
+}
+
+struct EnhancedPhaseBreakdownRow: View {
+    let phase: SleepPhaseData
+    let animateGlow: Bool
+    @State private var showContent = false
+    
+    var body: some View {
+        HStack(spacing: 20) {
+            // Enhanced phase indicator with glow effect
+            ZStack {
+                // Subtle background glow
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(colorForPhase(phase.type).opacity(0.2))
+                    .frame(width: 8, height: 45)
+                    .blur(radius: 4)
+                    .scaleEffect(animateGlow ? 1.2 : 1.0)
+                    .opacity(animateGlow ? 0.8 : 0.4)
+                
+                // Main indicator bar
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                colorForPhase(phase.type),
+                                colorForPhase(phase.type).opacity(0.8)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 4, height: 40)
+                    .shadow(
+                        color: colorForPhase(phase.type).opacity(0.6),
+                        radius: 3,
+                        x: 0,
+                        y: 1
+                    )
+                
+                // Subtle highlight on top
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.4),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 2, height: 15)
+                    .offset(y: -8)
+            }
+            
+            // Enhanced phase content with better typography
+            VStack(alignment: .leading, spacing: 6) {
+                // Phase name with subtle glow effect
+                ZStack {
+                    // Subtle text glow
+                    Text(phase.type.displayName)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(colorForPhase(phase.type))
+                        .blur(radius: 1)
+                        .opacity(0.3)
+                    
+                    // Main text
+                    Text(phase.type.displayName)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
+                }
+                
+                // Duration with enhanced styling
+                Text("< \(formatDuration(phase.duration))")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
+                    .opacity(showContent ? 1.0 : 0.0)
+                    .offset(y: showContent ? 0 : 10)
+            }
+            
+            Spacer()
+            
+            // Enhanced percentage display
+            VStack(alignment: .trailing, spacing: 6) {
+                // Percentage with glow effect
+                ZStack {
+                    // Subtle glow
+                    Text("\(Int(phase.percentage))%")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(colorForPhase(phase.type))
+                        .blur(radius: 1)
+                        .opacity(0.3)
+                    
+                    // Main percentage
+                    Text("\(Int(phase.percentage))%")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
+                }
+                .scaleEffect(showContent ? 1.0 : 0.8)
+                .opacity(showContent ? 1.0 : 0.0)
+                
+                // Duration (right side)
+                Text("< \(formatDuration(phase.duration))")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.gray)
+                    .opacity(showContent ? 1.0 : 0.0)
+                    .offset(y: showContent ? 0 : 10)
+            }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.1),
+                            Color.black.opacity(0.05)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .opacity(showContent ? 1.0 : 0.0)
+        )
+        .overlay(
+            // Subtle border with phase color
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            colorForPhase(phase.type).opacity(0.3),
+                            colorForPhase(phase.type).opacity(0.1)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    lineWidth: 1
+                )
+                .opacity(showContent ? 1.0 : 0.0)
+        )
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(Double(phaseIndex) * 0.1)) {
+                showContent = true
+            }
+        }
+    }
+    
+    private var phaseIndex: Int {
+        switch phase.type {
+        case .awake: return 0
+        case .light: return 1
+        case .deep: return 2
+        case .rem: return 3
         }
     }
     
     private func colorForPhase(_ type: SleepPhaseType) -> Color {
         switch type {
-        case .awake: return .green
-        case .light: return .blue
-        case .deep: return .purple
-        case .rem: return .pink
+        case .awake: return Color.yellow.opacity(0.9)
+        case .light: return Color.cyan.opacity(0.9)
+        case .deep: return Color.purple.opacity(0.9)
+        case .rem: return Color.pink.opacity(0.9)
         }
     }
     
